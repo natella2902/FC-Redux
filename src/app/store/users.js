@@ -4,11 +4,12 @@ import authService from "../services/auth.service";
 import { setTokens, getAccessToken, getUserId, removeAuthData } from "../services/localStorage.service";
 import getRandomInt from "../utils/getRandomInt";
 import history from "../utils/history";
+import generateAuthError from "../utils/generateAuthError";
 
 const initialState = getAccessToken() ? {
         entities: null,
         isLoading: true,
-        errors: null,
+        error: null,
         auth: { userId: getUserId() },
         isLoggedIn: true,
         dataStatus: false
@@ -16,7 +17,7 @@ const initialState = getAccessToken() ? {
     } : {
         entities: null,
         isLoading: false,
-        errors: null,
+        error: null,
         auth: null,
         isLoggedIn: false,
         dataStatus: false
@@ -36,6 +37,9 @@ const usersSlice = createSlice({
         usersReceiveFailed: (state, action) => {
             state.error = action.payload;
             state.isLoading = false;
+        },
+        authRequested: (state) => {
+            state.error = null;
         },
         authRequestedSuccess: (state, action) => {
             state.auth = action.payload;
@@ -64,7 +68,6 @@ const usersSlice = createSlice({
     }
 });
 
-const authRequested = createAction("users/authRequested");
 const createUserRequested = createAction("users/createUserRequested");
 const createUserRequestedFailed = createAction("users/createUserRequestedFailed");
 const updateUserRequested = createAction("users/updateUserRequested");
@@ -74,6 +77,7 @@ const {
         usersRequested,
         usersReceived,
         usersReceiveFailed,
+        authRequested,
         authRequestedSuccess,
         authRequestedFailed,
         createUserSuccess,
@@ -103,6 +107,8 @@ export const getCurrentUserId = () => (state) => state.users.auth.userId;
 export const getCurrentUserData = () => (state) => {
             return state.users.entities ? state.users.entities.find((u) => u._id === state.users.auth.userId) : null;
     };
+export const getError = () => (state) => state.users.error;
+
 export const signUp = ({ email, password, ...rest }) => async (dispatch) => {
     dispatch(authRequested());
     try {
@@ -123,7 +129,14 @@ export const signUp = ({ email, password, ...rest }) => async (dispatch) => {
             }
         ));
     } catch (error) {
-        dispatch(authRequestedFailed(error.message));
+        const { message, code } = error.response.data.error;
+        console.log(message, code);
+        if (code === 400) {
+            const errorMessage = generateAuthError(message);
+            dispatch(authRequestedFailed(errorMessage));
+        } else {
+            dispatch(authRequestedFailed(error.message));
+        }
     }
 
     function createUser(payload) {
@@ -149,7 +162,14 @@ export const logIn = ({ payload, redirect }) => async (dispatch) => {
         setTokens(data);
         history.push(redirect);
       } catch (error) {
-        dispatch(authRequestedFailed(error.message));
+            const { message, code } = error.response.data.error;
+                console.log(message, code);
+                if (code === 400) {
+                    const errorMessage = generateAuthError(message);
+                    dispatch(authRequestedFailed(errorMessage));
+                } else {
+                    dispatch(authRequestedFailed(error.message));
+                }
       }
 };
 
