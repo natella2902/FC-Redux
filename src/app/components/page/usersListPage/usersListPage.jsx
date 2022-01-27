@@ -67,8 +67,8 @@ const UsersListPage = () => {
             : selectedProf
             ? data.filter(
                   (user) =>
-                      JSON.stringify(user.profession) ===
-                      JSON.stringify(selectedProf)
+                      user.profession ===
+                      selectedProf._id
               )
             : data;
         return filteredUsers.filter((u) => u._id !== currentUserId);
@@ -94,7 +94,7 @@ const UsersListPage = () => {
                         className="btn btn-secondary mt-2"
                         onClick={clearFilter}
                     >
-                        Очиститть
+                        Очистить
                     </button>
                 </div>
             )}
